@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from config import settings
+from TicTacToe import TicTacToe
 import random
 import zipfile
 import os
@@ -8,6 +9,8 @@ import asyncio
 
 COIN = ['Орёл', 'Решка']
 ARCHIVE_MOD = False
+GAME_MOD = False
+GAME = TicTacToe(False)
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -41,9 +44,25 @@ async def stop_archive(message):
     ARCHIVE_MOD = False
 
 
+@bot.command()
+async def play_tic_tac_toe_bot(message):
+    global GAME_MOD
+    global GAME
+    GAME_MOD = True
+
+
+@bot.command()
+async def play_tic_tac_toe_human(message):
+    global GAME_MOD
+    global GAME
+    GAME_MOD = True
+
+
 @bot.event
 async def on_message(message):
     global ARCHIVE_MOD
+    global GAME_MOD
+    global GAME
 
     if message.author == bot.user:
         return
@@ -55,8 +74,12 @@ async def on_message(message):
 
             await message.channel.send(file=discord.File(r'data/archive.zip'))
 
-            os.remove("messages/text.txt")
-            os.remove('data/archive.zip')
+            if os.path.exists("messages/text.txt"):
+                os.remove("messages/text.txt")
+            if os.path.exists("images/text.txt"):
+                os.remove("images/text.txt")
+            if os.path.exists('data/archive.zip'):
+                os.remove('data/archive.zip')
 
         else:
             for attachment in message.attachments:
@@ -68,6 +91,60 @@ async def on_message(message):
             if message.content != "":
                 with open("messages/text.txt", "a") as text:
                     text.write(f'\n{message.content}')
+
+    if GAME_MOD or (message.content in ["/play_tic_tac_toe_bot", "/play_tic_tac_toe_human"]):
+        if message.content in ["/play_tic_tac_toe_bot", "/play_tic_tac_toe_human"]:
+            if message.content == "/play_tic_tac_toe_bot":
+                GAME = TicTacToe(bot=True)
+            else:
+                GAME = TicTacToe(bot=False)
+            await message.reply("Game start")
+            await message.reply(GAME.print_board())
+        else:
+            if not GAME.game_over:
+
+                win = GAME.get_result()
+
+                if win == "":
+                    if GAME.human:
+                        symbol = "X"
+                        step = int(message.content)
+                        GAME.make_turn(step, symbol)
+
+                    if not GAME.human:
+                        symbol = "O"
+                        step = int(message.content)
+                        GAME.make_turn(step, symbol)
+
+                    if not GAME.bot:
+                        GAME.human = not GAME.human
+
+                win = GAME.get_result()
+
+                if win == "" and GAME.bot:
+                    symbol = "O"
+                    step = GAME.find_best_step()
+                    if step == "":
+                        GAME.game_over = True
+                    else:
+                        await message.reply("Компьютер делает ход: ")
+                        GAME.make_turn(step, symbol)
+
+                await message.reply(GAME.print_board())
+
+                win = GAME.get_result()
+
+                if win != "":
+                    GAME.game_over = True
+
+            if GAME.win != "" and GAME.win != "Ничья":
+                await message.reply(f"Победил {GAME.win}")
+                GAME_MOD = False
+
+            if GAME.win == "Ничья" and GAME.game_over:
+                await message.reply(f"Ничья!")
+                GAME_MOD = False
+
     await bot.process_commands(message)
 
 bot.run(settings['token'])
