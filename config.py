@@ -1,5 +1,5 @@
 settings = {
-    'token': 'ODIzODg0NDIyNDQwNTUwNDkw.Gku3cS.tYocGwRz8aQrlNoQqC5sB3STz5e5QHDkCi9ZUo',
+    'token': 'ODIzODg0NDIyNDQwNTUwNDkw.GG_ngT.g62q-JiGmTWDi4MzdKjvu8h9cLPooVOeesHa_k',
     'bot': 'archive-bot',
     'id': 823884422440550490,
     'prefix': '/'

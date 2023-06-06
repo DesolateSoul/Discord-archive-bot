@@ -5,7 +5,12 @@ from TicTacToe import TicTacToe
 import random
 import zipfile
 import os
-import asyncio
+
+INFO = '''Функция /roll_dice. Бросок игральной кости. Выдаёт случайное число от 1 до 6. 
+Функция /coin_flip. Бросок монеты. Выдаёт одно из названий сторон монеты.
+Функция /generate_number x y. Генератор случайных целых чисел в диапазоне от x до y.
+Функции /start_archive и /stop_archive. После ввода первой функции бот автоматически запишет все дальнейшие отправленные пользователями файлы в архив zip, после ввода второй функции, архив отправляется в чат.
+Функции /play_tic_tac_toe_bot и /play_tic_tac_toe_human, /resign. Запускают игру в крестики нолики с ботом и с человеком (локально) соответственно, последняя предназначена для преждевременного прекращения игры. '''
 
 COIN = ['Орёл', 'Решка']
 ARCHIVE_MOD = False
@@ -58,6 +63,18 @@ async def play_tic_tac_toe_human(message):
     GAME_MOD = True
 
 
+@bot.command()
+async def resign(message):
+    global GAME_MOD
+    GAME_MOD = False
+
+
+@bot.command()
+async def info(message):
+    global INFO
+    await message.reply(INFO)
+
+
 @bot.event
 async def on_message(message):
     global ARCHIVE_MOD
@@ -76,30 +93,41 @@ async def on_message(message):
 
             if os.path.exists("messages/text.txt"):
                 os.remove("messages/text.txt")
-            if os.path.exists("images/text.txt"):
-                os.remove("images/text.txt")
+            if os.path.exists("files/text.txt"):
+                os.remove("files/text.txt")
             if os.path.exists('data/archive.zip'):
                 os.remove('data/archive.zip')
 
         else:
             for attachment in message.attachments:
                 with zipfile.ZipFile('data/archive.zip', mode='a') as archive:
-                    await attachment.save(f'images/{attachment.filename}')
-                    archive.write(f'images/{attachment.filename}')
-                    os.remove(f'images/{attachment.filename}')
+                    await attachment.save(f'files/{attachment.filename}')
+                    archive.write(f'files/{attachment.filename}')
+                    os.remove(f'files/{attachment.filename}')
 
             if message.content != "":
                 with open("messages/text.txt", "a") as text:
                     text.write(f'\n{message.content}')
 
-    if GAME_MOD or (message.content in ["/play_tic_tac_toe_bot", "/play_tic_tac_toe_human"]):
-        if message.content in ["/play_tic_tac_toe_bot", "/play_tic_tac_toe_human"]:
+    if GAME_MOD or (message.content in ["/play_tic_tac_toe_bot", "/play_tic_tac_toe_human", "/resign"]):
+        if message.content in ["/play_tic_tac_toe_bot", "/play_tic_tac_toe_human", "/resign"]:
             if message.content == "/play_tic_tac_toe_bot":
                 GAME = TicTacToe(bot=True)
-            else:
+                await message.reply("Началась игра с ботом.")
+                await message.reply(GAME.print_board())
+            elif message.content == "/play_tic_tac_toe_human":
                 GAME = TicTacToe(bot=False)
-            await message.reply("Game start")
-            await message.reply(GAME.print_board())
+                await message.reply("Началась игра с человеком.")
+                await message.reply(GAME.print_board())
+
+            if message.content == "/resign":
+                if GAME.bot:
+                    await message.reply("Победил O.")
+                else:
+                    if GAME.human:
+                        await message.reply("Победил O.")
+                    else:
+                        await message.reply("Победил X.")
         else:
             if not GAME.game_over:
 
@@ -141,7 +169,7 @@ async def on_message(message):
                 await message.reply(f"Победил {GAME.win}")
                 GAME_MOD = False
 
-            if GAME.win == "Ничья" and GAME.game_over:
+            elif GAME.win == "Ничья" or GAME.game_over:
                 await message.reply(f"Ничья!")
                 GAME_MOD = False
 
